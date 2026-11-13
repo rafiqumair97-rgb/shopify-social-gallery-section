@@ -1,0 +1,147 @@
+{%- comment -%}
+  Social / customer photo gallery: square image grid with an optional
+  lightbox. Each block is one photo with an optional caption and link.
+{%- endcomment -%}
+
+<div
+  class="sg page-width"
+  id="SocialGallery-{{ section.id }}"
+  style="--sg-cols: {{ section.settings.columns_desktop }}; --sg-cols-m: {{ section.settings.columns_mobile }}; --sg-gap: {{ section.settings.gap }}px;"
+>
+  {%- if section.settings.heading != blank -%}
+    <h2 class="sg__heading">{{ section.settings.heading }}</h2>
+  {%- endif -%}
+  {%- if section.settings.subheading != blank -%}
+    <p class="sg__sub">{{ section.settings.subheading }}</p>
+  {%- endif -%}
+
+  <ul class="sg__grid" role="list">
+    {%- for block in section.blocks -%}
+      {%- assign img = block.settings.image -%}
+      <li class="sg__item" {{ block.shopify_attributes }}>
+        {%- if img -%}
+          <button
+            type="button"
+            class="sg__open"
+            data-sg-full="{{ img | image_url: width: 1600 }}"
+            data-sg-caption="{{ block.settings.caption | escape }}"
+            aria-label="{{ 'Open photo' }} {{ forloop.index }}"
+            {% unless section.settings.lightbox %}disabled{% endunless %}
+          >
+            {{ img | image_url: width: 600 | image_tag: loading: 'lazy', class: 'sg__img', alt: img.alt, sizes: '(min-width: 750px) 25vw, 50vw' }}
+          </button>
+        {%- else -%}
+          {{ 'image' | placeholder_svg_tag: 'sg__img sg__img--placeholder' }}
+        {%- endif -%}
+
+        {%- if block.settings.caption != blank -%}
+          {%- if block.settings.link != blank -%}
+            <a class="sg__caption" href="{{ block.settings.link }}">{{ block.settings.caption }}</a>
+          {%- else -%}
+            <p class="sg__caption">{{ block.settings.caption }}</p>
+          {%- endif -%}
+        {%- endif -%}
+      </li>
+    {%- endfor -%}
+  </ul>
+
+  {%- if section.settings.button_label != blank and section.settings.button_link != blank -%}
+    <div class="sg__cta">
+      <a class="button" href="{{ section.settings.button_link }}">{{ section.settings.button_label }}</a>
+    </div>
+  {%- endif -%}
+
+  {%- if section.settings.lightbox -%}
+    <dialog class="sg__dialog" aria-label="Photo viewer">
+      <button type="button" class="sg__close" aria-label="Close">&times;</button>
+      <img class="sg__dialog-img" src="" alt="">
+      <p class="sg__dialog-caption"></p>
+    </dialog>
+  {%- endif -%}
+</div>
+
+<style>
+  .sg { padding: 40px 16px; text-align: center; }
+  .sg__heading { margin: 0 0 8px; }
+  .sg__sub { margin: 0 0 24px; opacity: .75; }
+  .sg__grid {
+    list-style: none; margin: 0; padding: 0; display: grid; gap: var(--sg-gap);
+    grid-template-columns: repeat(var(--sg-cols), minmax(0, 1fr));
+  }
+  .sg__open { all: unset; display: block; cursor: zoom-in; width: 100%; }
+  .sg__open[disabled] { cursor: default; }
+  .sg__img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; display: block; border-radius: 6px; transition: opacity .2s; }
+  .sg__open:hover .sg__img, .sg__open:focus-visible .sg__img { opacity: .85; }
+  .sg__caption { display: block; margin: 8px 0 0; font-size: .9em; }
+  .sg__cta { margin-top: 28px; }
+  .sg__dialog { border: 0; padding: 0; max-width: min(92vw, 900px); background: transparent; }
+  .sg__dialog::backdrop { background: rgba(0,0,0,.8); }
+  .sg__dialog-img { width: 100%; height: auto; max-height: 82vh; object-fit: contain; display: block; }
+  .sg__dialog-caption { color: #fff; margin: 10px 0 0; }
+  .sg__close { position: absolute; top: 6px; right: 10px; background: none; border: 0; color: #fff; font-size: 34px; cursor: pointer; }
+  @media (max-width: 749px) {
+    .sg__grid { grid-template-columns: repeat(var(--sg-cols-m), minmax(0, 1fr)); }
+  }
+</style>
+
+{%- if section.settings.lightbox -%}
+<script>
+  (function () {
+    var root = document.getElementById('SocialGallery-{{ section.id }}');
+    var dialog = root && root.querySelector('.sg__dialog');
+    if (!dialog || typeof dialog.showModal !== 'function') return;
+    var img = dialog.querySelector('.sg__dialog-img');
+    var cap = dialog.querySelector('.sg__dialog-caption');
+
+    root.querySelectorAll('.sg__open').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        img.src = btn.dataset.sgFull;
+        img.alt = btn.dataset.sgCaption || '';
+        cap.textContent = btn.dataset.sgCaption || '';
+        dialog.showModal();
+      });
+    });
+    dialog.querySelector('.sg__close').addEventListener('click', function () { dialog.close(); });
+    dialog.addEventListener('click', function (e) { if (e.target === dialog) dialog.close(); });
+  })();
+</script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Social gallery",
+  "tag": "section",
+  "class": "section",
+  "max_blocks": 24,
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Seen on our customers" },
+    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Tag us to be featured" },
+    { "type": "range", "id": "columns_desktop", "label": "Columns on desktop", "min": 2, "max": 6, "step": 1, "default": 4 },
+    { "type": "range", "id": "columns_mobile", "label": "Columns on mobile", "min": 1, "max": 3, "step": 1, "default": 2 },
+    { "type": "range", "id": "gap", "label": "Gap between photos", "min": 0, "max": 24, "step": 2, "unit": "px", "default": 8 },
+    { "type": "checkbox", "id": "lightbox", "label": "Open photos in a lightbox", "default": true },
+    { "type": "text", "id": "button_label", "label": "Button label", "default": "Follow us" },
+    { "type": "url", "id": "button_link", "label": "Button link" }
+  ],
+  "blocks": [
+    {
+      "type": "photo",
+      "name": "Photo",
+      "settings": [
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "text", "id": "caption", "label": "Caption" },
+        { "type": "url", "id": "link", "label": "Caption link (optional)" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Social gallery",
+      "blocks": [
+        { "type": "photo" }, { "type": "photo" }, { "type": "photo" }, { "type": "photo" },
+        { "type": "photo" }, { "type": "photo" }, { "type": "photo" }, { "type": "photo" }
+      ]
+    }
+  ]
+}
+{% endschema %}
